@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3a3e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="スクショ何切る">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Mortal スクショ何切る</title>
+<style>
+:root{
+  --bg:#0b2f33; --panel:#12474d; --line:#1e6a72; --fg:#eaf6f5; --muted:#9dc4c4;
+  --accent:#3ddc97; --accent2:#ffd166; --bad:#ff6b6b; --good:#3ddc97; --review:#ffa94d;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;line-height:1.5}
+body{padding-bottom:calc(66px + var(--safe-b))}
+h1,h2{margin:0 0 8px;font-weight:700}h2{font-size:17px}
+a{color:var(--accent)}
+.wrap{padding:12px 12px 24px;max-width:760px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}.center{text-align:center}.muted{color:var(--muted)}.small{font-size:12px}
+button{font:inherit;font-weight:700;border:none;border-radius:12px;padding:12px 14px;background:var(--line);color:var(--fg);cursor:pointer}
+button:active{opacity:.75}button[disabled]{opacity:.45}
+.btn-primary{background:var(--accent);color:#05221f}
+.btn-warn{background:var(--review);color:#3a1c00}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.btn-danger{background:#7a2222;color:#ffdede}
+.btn-sm{padding:8px 10px;border-radius:10px;font-size:13px}
+.btn-block{display:block;width:100%}
+input,select,textarea{font:inherit;width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0a262a;color:var(--fg)}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#08262a;border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+nav button{flex:1;background:none;border-radius:0;padding:10px 2px 8px;color:var(--muted);font-size:11px;font-weight:600}
+nav button .ico{display:block;font-size:19px;line-height:1.2}
+nav button.on{color:var(--accent)}
+.badge{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700}
+.b-new{background:#1e6a72;color:#d8f5f2}.b-correct{background:#14603f;color:#c8ffe6}
+.b-wrong{background:#6d2020;color:#ffd7d7}.b-review{background:#7a4a12;color:#ffe3c0}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--muted)}
+.startpane{display:flex;flex-direction:column;justify-content:center;min-height:calc(100vh - 104px - var(--safe-b));min-height:calc(100dvh - 104px - var(--safe-b))}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modebtn{background:#0a262a;border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center;color:var(--fg)}
+.modebtn .n{display:block;font-size:22px;font-weight:800;line-height:1.1}
+.modebtn .l{font-size:12px;color:var(--muted)}
+.modebtn:disabled{opacity:.4}
+.srcbtn{display:block;width:100%;text-align:left;background:#0a262a;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;color:var(--fg)}
+.cs{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.stats div{background:#0a262a;border:1px solid var(--line);border-radius:10px;padding:8px 2px}
+.stats .n{font-size:19px;font-weight:800;display:block}.stats .l{font-size:10px;color:var(--muted)}
+.filters{display:flex;gap:6px;overflow:auto;padding-bottom:4px;margin-bottom:10px}
+.filters button{white-space:nowrap;padding:7px 11px;font-size:13px;border-radius:999px;background:#0a262a;border:1px solid var(--line)}
+.filters button.on{background:var(--accent);color:#05221f;border-color:var(--accent)}
+.group{margin-bottom:16px}
+.ghead{background:#0a262a;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.list-item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+.list-item img.strip{display:block;width:100%;height:auto;border-radius:6px}
+.shot{position:relative;background:#0a2b2f;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.shot img{display:block;width:100%;height:auto}
+.zone{position:absolute;border:2px solid transparent;border-radius:4px;cursor:pointer}
+.zone.sel{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(255,209,102,.55);background:rgba(255,209,102,.18)}
+.zone.ans{border-color:var(--good);box-shadow:0 0 0 2px rgba(61,220,151,.55)}
+.zone.ng{border-color:var(--bad);box-shadow:0 0 0 2px rgba(255,107,107,.55)}
+.strip{position:relative;margin-top:8px;border-radius:10px;overflow:hidden;background:#0a2b2f;border:1px solid var(--line)}
+.strip img{display:block;width:100%;height:auto}
+.strip .zone{top:0;bottom:0}
+.tileimg{height:48px;width:auto;border-radius:4px;display:inline-block;vertical-align:middle;background:#fff}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:18px 12px;text-align:center;background:#0a262a}
+.drop.over{border-color:var(--accent);background:#0d3a3a}
+.errbox{background:#4a1c1c;border:1px solid #a04a4a;border-radius:12px;padding:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + var(--safe-b));background:#08262a;
+  border:1px solid var(--line);padding:10px 14px;border-radius:12px;z-index:99;max-width:92%;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.expl{background:#0a262a;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-top:10px}
+details{background:#0a262a;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:10px}
+summary{cursor:pointer;font-size:13px;font-weight:700}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.cand{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.cand .bar{height:8px;border-radius:4px;background:var(--accent)}
+table.diag{width:100%;font-size:13px;border-collapse:collapse}
+table.diag td{padding:4px 0;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.06)}
+table.diag td:first-child{color:var(--muted);width:38%}
+.queue-item{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:#0d383d}
+.result{font-size:22px;font-weight:800;text-align:center;margin:8px 0 2px}
+.result.ok{color:var(--good)}.result.ng{color:var(--bad)}
+.sw{display:flex;align-items:center;gap:10px;padding:6px 0}
+.sw input{width:auto}
+</style>
+</head>
+<body>
+<div id="view" class="wrap"></div>
+<nav>
+  <button data-tab="quiz" class="on"><span class="ico">🀄️</span>クイズ</button>
+  <button data-tab="add"><span class="ico">＋</span>取り込み</button>
+  <button data-tab="list"><span class="ico">📚</span>一覧</button>
+  <button data-tab="settings"><span class="ico">⚙️</span>設定</button>
+</nav>
+<script>
+"use strict";
+const APP_VERSION='2026-10-11a';
+/* ========================= 小物 ========================= */
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let toastT=null;
+function toast(m,ms){const o=$('.toast');if(o)o.remove();const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);clearTimeout(toastT);toastT=setTimeout(()=>d.remove(),ms||2800);}
+const fmtDT=t=>t?new Date(t).toLocaleString('ja-JP',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+const CFG={
+  get hideFrame(){ return localStorage.getItem('sq.hideframe')!=='0'; }, set hideFrame(v){ localStorage.setItem('sq.hideframe',v?'1':'0'); },
+  get mode(){ return localStorage.getItem('sq.mode')||'auto'; }, set mode(v){ localStorage.setItem('sq.mode',v); }
+};
+
+/* ========================= 保存（IndexedDB + localStorage の二重保存） =========================
+   画像（rec.img）は IndexedDB にだけ保存し、localStorage には学習状況などの軽いデータだけを控える。
+============================================================================================ */
+const DBN='mortal-shot-quiz', STORE='problems';
+const LS_DB='sq.db.v1', LS_STAT='sq.stat.v1';
+let _db=null, MEM=new Map(), DIRTY=new Set(), DELETED=new Set(), saveTimer=null;
+const DIAG={idb:'未確認', ls:'未確認', persisted:null, lastSaveAt:null, lastError:null, quota:null, usage:null};
+function idbOpen(){
+  if(_db) return Promise.resolve(_db);
+  return new Promise((res,rej)=>{
+    let r; try{ r=indexedDB.open(DBN,1); }catch(e){ return rej(e); }
+    r.onupgradeneeded=e=>{ const d=e.target.result; if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE,{keyPath:'id'}); };
+    r.onsuccess=()=>{ _db=r.result; _db.onclose=()=>{ _db=null; }; _db.onversionchange=()=>{ try{_db.close()}catch(e){} _db=null; }; res(_db); };
+    r.onerror=()=>rej(r.error||new Error('open failed'));
+    r.onblocked=()=>rej(new Error('blocked'));
+  });
+}
+function idbTx(mode,fn){
+  return idbOpen().then(d=>new Promise((res,rej)=>{
+    let tx; try{ tx=d.transaction(STORE,mode); }catch(e){ _db=null; return rej(e); }
+    let out; try{ out=fn(tx.objectStore(STORE)); }catch(e){ return rej(e); }
+    tx.oncomplete=()=>res(out&&typeof out==='object'&&'result' in out? out.result : out);
+    tx.onerror=()=>rej(tx.error||new Error('tx error'));
+    tx.onabort=()=>rej(tx.error||new Error('tx abort'));
+  }));
+}
+function idbTry(mode,fn){ return idbTx(mode,fn).catch(e=>{ _db=null; return idbTx(mode,fn); }); }
+function lsGet(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ DIAG.lastError='LS: '+(e.message||e); return false; } }
+function mergeRec(r){
+  if(!r||!r.id) return;
+  const cur=MEM.get(r.id);
+  if(!cur){ MEM.set(r.id,r); return; }
+  const ta=cur.updatedAt||cur.lastAnsweredAt||cur.createdAt||0, tb=r.updatedAt||r.lastAnsweredAt||r.createdAt||0;
+  const win=Object.assign({}, tb>=ta? r : cur);
+  if(!win.img && (cur.img||r.img)) win.img=cur.img||r.img;
+  MEM.set(r.id,win);
+}
+async function loadAll(){
+  let fromIdb=[], fromLs=[];
+  try{ fromIdb=(await idbTry('readonly',st=>st.getAll()))||[]; DIAG.idb='OK（'+fromIdb.length+'件）'; }
+  catch(e){ DIAG.idb='使用不可（'+(e.message||e)+'）'; }
+  try{ fromLs=lsGet(LS_DB,[])||[]; DIAG.ls='OK（'+fromLs.length+'件）'; }catch(e){ DIAG.ls='使用不可'; }
+  MEM=new Map(); fromLs.forEach(mergeRec); fromIdb.forEach(mergeRec);
+  const stat=lsGet(LS_STAT,{})||{};
+  MEM.forEach(r=>{ const t=stat[r.id];
+    if(t && (t[4]||0)>(r.lastAnsweredAt||0)){ r.status=t[0]; r.review=!!t[1]; r.correctCount=t[2]||0; r.wrongCount=t[3]||0; r.lastAnsweredAt=t[4]||null; } });
+  const inIdb=new Set(fromIdb.map(r=>r.id)), inLs=new Set(fromLs.map(r=>r.id)); let need=false;
+  MEM.forEach(r=>{ if(!inIdb.has(r.id)||!inLs.has(r.id)){ DIRTY.add(r.id); need=true; } });
+  if(need) flush();
+  try{ if(navigator.storage&&navigator.storage.estimate){ const e=await navigator.storage.estimate(); DIAG.usage=e.usage; DIAG.quota=e.quota; } }catch(e){}
+}
+function saveSoon(ms){ clearTimeout(saveTimer); saveTimer=setTimeout(flush, ms==null?350:ms); }
+async function flush(){
+  clearTimeout(saveTimer);
+  const recs=[...MEM.values()];
+  const stat={}; recs.forEach(r=>{ stat[r.id]=[r.status,r.review?1:0,r.correctCount||0,r.wrongCount||0,r.lastAnsweredAt||0]; });
+  lsSet(LS_STAT,stat);
+  if(lsSet(LS_DB, recs.map(r=>{ const c=Object.assign({},r); delete c.img; return c; }))) DIAG.ls='OK（'+recs.length+'件）';
+  else DIAG.ls='書き込み失敗（容量超過など）';
+  const ids=[...DIRTY], dels=[...DELETED];
+  if(ids.length||dels.length){
+    try{
+      await idbTry('readwrite',st=>{ ids.forEach(id=>{ const r=MEM.get(id); if(r) st.put(r); }); dels.forEach(id=>st.delete(id)); });
+      DIRTY.clear(); DELETED.clear(); DIAG.lastSaveAt=Date.now(); DIAG.idb='OK（'+MEM.size+'件）';
+    }catch(e){ DIAG.lastError='IDB: '+(e.message||e); DIAG.idb='書き込み失敗（'+(e.message||e)+'）'; }
+  } else DIAG.lastSaveAt=Date.now();
+}
+const dbAll=async()=>[...MEM.values()];
+const dbGet=async id=>MEM.get(id);
+const dbPut=async r=>{ r.updatedAt=Date.now(); MEM.set(r.id,r); DIRTY.add(r.id); DELETED.delete(r.id); saveSoon(); return r; };
+const dbDel=async id=>{ MEM.delete(id); DIRTY.delete(id); DELETED.add(id); saveSoon(0); };
+const dbClear=async()=>{ MEM.forEach((v,k)=>DELETED.add(k)); MEM.clear(); DIRTY.clear();
+  try{ localStorage.removeItem(LS_DB); localStorage.removeItem(LS_STAT); }catch(e){} await flush(); };
+async function askPersist(){
+  try{ if(!navigator.storage) return;
+    if(navigator.storage.persisted) DIAG.persisted=await navigator.storage.persisted();
+    if(!DIAG.persisted && navigator.storage.persist) DIAG.persisted=await navigator.storage.persist();
+  }catch(e){}
+}
+addEventListener('pagehide',()=>{ try{ flush(); }catch(e){} });
+addEventListener('beforeunload',()=>{ try{ flush(); }catch(e){} });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ try{ flush(); }catch(e){} } });
+
+/* ========================= 画像解析（API不要・端末内で完結） =========================
+   Mortal の検討画面スクリーンショットから
+     ・手牌の位置（各牌の矩形）
+     ・緑の縦棒（AIの推奨度）→ いちばん高い棒の牌が正解
+     ・赤い枠（実戦で切った牌）
+   を色で検出し、緑棒と赤枠を消した「問題画像」と、元のままの「答え画像」を作る。
+============================================================================================ */
+function fileToImage(f){return new Promise((res,rej)=>{const fr=new FileReader();
+  fr.onload=()=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めません'));i.src=fr.result;};fr.onerror=()=>rej(new Error('ファイルを読めません'));fr.readAsDataURL(f);});}
+function hamming(a,b){ let n=0; for(let i=0;i<a.length;i++){ let x=parseInt(a[i],16)^parseInt(b[i],16); while(x){ n+=x&1; x>>=1; } } return n; }
+function analyzeImage(img){
+  const MAXW=1400, sc=Math.min(1,MAXW/img.width);
+  const W=Math.round(img.width*sc), H=Math.round(img.height*sc);
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,W,H);
+  const id=ctx.getImageData(0,0,W,H), d=id.data;
+  const P=(x,y)=>(y*W+x)*4;
+  const isTeal=i=>{const r=d[i],g=d[i+1],b=d[i+2]; return r<70&&b>=30&&b>r+25&&g>r+15;};
+  const isWhite=i=>d[i]>190&&d[i+1]>190&&d[i+2]>190;
+  const isGreen=i=>{const r=d[i],g=d[i+1],b=d[i+2]; return g>100&&g>r+60&&g>b+60;};
+  const isRed=i=>{const r=d[i],g=d[i+1],b=d[i+2]; return r>110&&g<80&&b<80&&r>g+50&&r>b+50;};
+  // --- 盤面（緑青の背景）の範囲 ---
+  const tealRow=new Int32Array(H), whiteRow=new Int32Array(H);
+  for(let y=0;y<H;y++){ let t=0,w=0; for(let x=0;x<W;x++){const i=P(x,y); if(isTeal(i))t++; else if(isWhite(i))w++;} tealRow[y]=t; whiteRow[y]=w; }
+  const tealRows=[]; for(let y=0;y<H;y++) if(tealRow[y]>W*0.5) tealRows.push(y);
+  if(tealRows.length<H*0.15) throw new Error('Mortalの検討画面として認識できません（緑青の背景が見つかりません）');
+  const boardTop=tealRows[0], boardBottom=tealRows[tealRows.length-1];
+  // --- 手牌の帯：いちばん白い行を中心に上下へ広げる ---
+  let best=-1,bw=0; for(let y=boardTop;y<=boardBottom;y++) if(whiteRow[y]>bw){bw=whiteRow[y];best=y;}
+  if(bw<W*0.18) throw new Error('手牌が見つかりません（画面下部の手牌が写るように撮ってください）');
+  let bt=best,bb=best; while(bt>boardTop&&whiteRow[bt-1]>bw*0.35) bt--; while(bb<boardBottom&&whiteRow[bb+1]>bw*0.35) bb++;
+  const h=bb-bt+1; if(h<W*0.025||h>W*0.16) throw new Error('手牌の大きさが想定外です');
+  // --- 手牌の帯の中で、背景でない列のまとまり ---
+  const tealCol=new Int32Array(W), whiteCol=new Int32Array(W);
+  for(let x=0;x<W;x++){let t=0,w=0; for(let y=bt;y<=bb;y++){const i=P(x,y); if(isTeal(i))t++; else if(isWhite(i))w++;} tealCol[x]=t; whiteCol[x]=w;}
+  const p0=h*0.87; // 牌1枚の横幅の目安（白い部分の高さに対する比。境目が見つかればそちらで補正する）
+  const groups=[]; let gx=-1;
+  for(let x=0;x<=W;x++){ const bg = x===W || tealCol[x]>=h*0.6;
+    if(!bg){ if(gx<0) gx=x; } else if(gx>=0){ groups.push({x0:gx,x1:x}); gx=-1; } }
+  const gs=groups.filter(g=>{ const w=g.x1-g.x0; if(w<p0*0.6) return false; let wh=0; for(let x=g.x0;x<g.x1;x++) wh+=whiteCol[x]; return wh/(w*h)>=0.4; });
+  if(!gs.length) throw new Error('手牌が見つかりません');
+  let hi=0; gs.forEach((g,i)=>{ if(g.x1-g.x0 > gs[hi].x1-gs[hi].x0) hi=i; });
+  const hand=gs[hi];
+  // --- 牌と牌の境目（帯の上下いっぱいに続く暗い列）から、牌の正確なピッチを求める ---
+  // 境目の列には明るい画素がひとつも無い（絵柄の列には必ず白い部分がある）
+  const seps=[]; let sx=-1;
+  for(let x=hand.x0;x<=hand.x1;x++){ let mxb=0;
+    if(x<hand.x1) for(let y=bt;y<=bb;y++){const i=P(x,y); const m=Math.max(d[i],d[i+1],d[i+2]); if(m>mxb) mxb=m;}
+    const on=x<hand.x1 && mxb<=200;
+    if(on){ if(sx<0) sx=x; } else if(sx>=0){ seps.push((sx+x-1)/2); sx=-1; } }
+  let pitch=p0, a0=hand.x0-1;
+  if(seps.length>=2){ const dd=[]; for(let i=1;i<seps.length;i++) dd.push(seps[i]-seps[i-1]);
+    dd.sort((a,b)=>a-b); const md=dd[Math.floor(dd.length/2)];
+    if(md>p0*0.75&&md<p0*1.3){
+      const good=dd.filter(v=>Math.abs(v-md)<=2); pitch=good.reduce((a,b)=>a+b,0)/good.length;
+      const offs=seps.map(s=>s-Math.round((s-seps[0])/pitch)*pitch).sort((a,b)=>a-b); const o=offs[Math.floor(offs.length/2)];
+      a0=o-Math.round((o-hand.x0)/pitch)*pitch; } }
+  const n=Math.max(1,Math.min(14,Math.round((hand.x1-a0)/pitch)));
+  const tiles=[]; for(let k=0;k<n;k++) tiles.push({x0:a0+k*pitch, x1:a0+(k+1)*pitch, drawn:false, grp:0});
+  // ツモ牌：手牌のすぐ右にある、牌1枚分の幅のまとまり
+  const right=gs.filter(g=>g.x0>=hand.x1).sort((a,b)=>a.x0-b.x0)[0];
+  if(right){ const w=right.x1-right.x0; if(w>=pitch*0.6&&w<=pitch*1.4&&right.x0-hand.x1<pitch*2.5) tiles.push({x0:right.x0-1.5,x1:right.x0-1.5+pitch,drawn:true,grp:1}); }
+  const R=v=>Math.round(v);
+  // --- 緑の縦棒（手牌のすぐ上） ---
+  const xs0=R(tiles[0].x0), xs1=R(tiles[tiles.length-1].x1);
+  const top=Math.max(boardTop, R(bt-2.5*h));
+  const gcol=new Int32Array(W), gmin=new Int32Array(W).fill(H), gmax=new Int32Array(W).fill(-1);
+  for(let x=Math.max(0,xs0);x<Math.min(W,xs1);x++) for(let y=top;y<bt;y++){ if(isGreen(P(x,y))){ gcol[x]++; if(y<gmin[x])gmin[x]=y; if(y>gmax[x])gmax[x]=y; } }
+  const bars=[]; let rx=-1;
+  for(let x=Math.max(0,xs0);x<=Math.min(W,xs1);x++){ const on = x<xs1 && gcol[x]>=2;
+    if(on){ if(rx<0) rx=x; } else if(rx>=0){
+      let y0=H,y1=-1,cnt=0; for(let x2=rx;x2<x;x2++){cnt+=gcol[x2]; if(gmin[x2]<y0)y0=gmin[x2]; if(gmax[x2]>y1)y1=gmax[x2];}
+      const w=x-rx, hh=y1-y0+1, fill=cnt/(w*hh);
+      if(y1>=bt-0.3*h && w>=pitch*0.08 && w<=pitch*0.7 && fill>=0.5 && hh>=2){
+        const cx=(rx+x)/2, ti=tiles.findIndex(t=>cx>=t.x0&&cx<t.x1);
+        if(ti>=0) bars.push({x0:rx,x1:x,y0,y1,h:hh,idx:ti}); }
+      rx=-1; } }
+  // 同じ牌に複数かかったら高い方
+  const barOf=new Map(); bars.forEach(b=>{ const o=barOf.get(b.idx); if(!o||b.h>o.h) barOf.set(b.idx,b); });
+  const cand=[...barOf.values()].sort((a,b)=>b.h-a.h);
+  const answer=cand.length? cand[0].idx : -1;
+  // --- 赤い枠（実戦で切った牌）：牌の上下端の行が赤い ---
+  const T0=Math.max(2,R(h*0.08));
+  const redRowFrac=(y,t)=>{ const a=R(t.x0+(t.x1-t.x0)*0.2), b=R(t.x1-(t.x1-t.x0)*0.2); let c=0; for(let x=a;x<b;x++) if(x>=0&&x<W&&isRed(P(x,y))) c++; return c/Math.max(1,b-a); };
+  let actual=-1, T=2; const redDbg=[];
+  tiles.forEach((t,i)=>{ let topN=0,botN=0;
+    for(let y=Math.max(0,bt-2);y<=bt+T0;y++) if(redRowFrac(y,t)>0.6) topN++;
+    for(let y=Math.min(H-1,bb+2);y>=bb-T0;y--) if(redRowFrac(y,t)>0.6) botN++;
+    redDbg.push([topN,botN]);
+    if(topN>=1&&botN>=1&&(actual<0||topN+botN>T)){ actual=i; T=Math.max(topN,botN); } });
+  // --- 問題画像：緑棒を背景色で塗り、赤枠は隣の牌の縁をコピーして消す ---
+  const q=new Uint8ClampedArray(d);
+  const tealRef=[0,68,82];
+  bars.forEach(b=>{ for(let y=Math.max(0,b.y0-2);y<=Math.min(H-1,b.y1+2);y++){
+      let sx2=b.x0-4, src=null; if(sx2>=0&&isTeal(P(sx2,y))) src=P(sx2,y); else if(b.x1+4<W&&isTeal(P(b.x1+4,y))) src=P(b.x1+4,y);
+      const col=src!=null? [d[src],d[src+1],d[src+2]] : tealRef;
+      for(let x=Math.max(0,b.x0-2);x<Math.min(W,b.x1+2);x++){ const i=P(x,y); q[i]=col[0]; q[i+1]=col[1]; q[i+2]=col[2]; } } });
+  let frameHidden=false;
+  if(actual>=0&&CFG.hideFrame){
+    const t=tiles[actual]; let srcT=null;
+    if(t.drawn) srcT=tiles.filter(x=>!x.drawn).slice(-1)[0]||null;
+    else srcT=tiles[actual-1]&&!tiles[actual-1].drawn? tiles[actual-1] : (tiles[actual+1]&&!tiles[actual+1].drawn? tiles[actual+1]:null);
+    // 枠は牌の外周 T 画素ぶん。にじみも含めて外側へ1px広げた範囲を、絵柄に触れない厚みで上書きする
+    const th=T+2, X0=R(t.x0)-1, X1=R(t.x1), Y0=bt-2, Y1=bb+2;
+    const inRing=(x,y)=> (x-X0<th+1)||(X1-x<th+1)||(y-Y0<th+1)||(Y1-y<th+1);
+    if(srcT){ const dx=R(t.x0-srcT.x0);
+      for(let y=Math.max(0,Y0);y<=Math.min(H-1,Y1);y++) for(let x=Math.max(0,X0);x<=Math.min(W-1,X1);x++){ if(!inRing(x,y)) continue;
+        const sx3=x-dx; if(sx3<0||sx3>=W) continue; const i=P(x,y), j=P(sx3,y); q[i]=d[j]; q[i+1]=d[j+1]; q[i+2]=d[j+2]; }
+      frameHidden=true;
+    } else {
+      for(let y=Math.max(0,Y0);y<=Math.min(H-1,Y1);y++) for(let x=Math.max(0,X0);x<=Math.min(W-1,X1);x++){ if(!inRing(x,y)) continue;
+        const i=P(x,y); if(q[i]>q[i+1]+40){ q[i]=211;q[i+1]=210;q[i+2]=210; } }
+      frameHidden=true;
+    }
+  }
+  // --- 「同じ牌」の判定用に各牌の内側を縮小して持つ ---
+  const th2=T+3;
+  const sig=tiles.map(t=>{ const x0=R(t.x0)+th2, x1=R(t.x1)-th2, y0=bt+th2, y1=bb-th2, out=[];
+    for(let gy=0;gy<8;gy++) for(let gx2=0;gx2<6;gx2++){ let r=0,g=0,b=0,n2=0;
+      const ya=y0+Math.floor((y1-y0)*gy/8), yb=Math.max(ya+1,y0+Math.floor((y1-y0)*(gy+1)/8));
+      const xa=x0+Math.floor((x1-x0)*gx2/6), xb=Math.max(xa+1,x0+Math.floor((x1-x0)*(gx2+1)/6));
+      for(let y=ya;y<yb;y++) for(let x=xa;x<xb;x++){ if(x<0||x>=W||y<0||y>=H) continue; const i=P(x,y); r+=q[i];g+=q[i+1];b+=q[i+2];n2++; }
+      out.push(n2?r/n2:0,n2?g/n2:0,n2?b/n2:0); }
+    return out; });
+  const sigDiff=(a,b)=>{ let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; };
+  // 同じ絵柄の牌（見た目がほぼ一致）と、緑棒の高さが同じ牌はどれを切っても正解にする
+  const sameOf=idx=>idx<0?[]:tiles.map((t,i)=>i).filter(i=>i!==idx&&(sigDiff(sig[idx],sig[i])<9||cand.some(b=>b.idx===i&&b.h>=cand[0].h-1)));
+  // --- 出力：盤面の上端から手牌の少し下までを切り出す ---
+  const cropTop=boardTop, cropBot=Math.min(boardBottom, R(bb+0.7*h)), cw=W, ch=cropBot-cropTop+1;
+  const qid=new ImageData(q,W,H);
+  const qc=document.createElement('canvas'); qc.width=W; qc.height=H; qc.getContext('2d').putImageData(qid,0,0);
+  const OUTW=Math.min(cw,1000), os=OUTW/cw;
+  function cut(srcCanvas,x,y,w,hh,outW,quality){ const o=document.createElement('canvas'); const s=outW/w; o.width=Math.round(w*s); o.height=Math.round(hh*s);
+    o.getContext('2d').drawImage(srcCanvas,x,y,w,hh,0,0,o.width,o.height); return o.toDataURL('image/jpeg',quality||.85); }
+  const qImg=cut(qc,0,cropTop,cw,ch,OUTW), aImg=cut(c,0,cropTop,cw,ch,OUTW);
+  const sx0=Math.max(0,R(tiles[0].x0)-3), sx1=Math.min(W,R(tiles[tiles.length-1].x1)+3), sy0=Math.max(0,bt-3), sy1=Math.min(H,bb+4);
+  const strip=cut(qc,sx0,sy0,sx1-sx0,sy1-sy0,Math.min(1000,(sx1-sx0)*2));
+  const tileImg=(canvas,t)=>cut(canvas,R(t.x0)+1,bt-1,R(t.x1)-R(t.x0)-2,bb-bt+3,96,.8);
+  const outTiles=tiles.map(t=>({x:t.x0/cw, y:(bt-1-cropTop)/ch, w:(t.x1-t.x0)/cw, h:(bb-bt+3)/ch, u0:(t.x0-sx0)/(sx1-sx0), u1:(t.x1-sx0)/(sx1-sx0), drawn:t.drawn}));
+  // --- 重複検出用ハッシュ（dHash） ---
+  const hc=document.createElement('canvas'); hc.width=9; hc.height=8; const hctx=hc.getContext('2d'); hctx.drawImage(c,0,cropTop,cw,ch,0,0,9,8);
+  const hd=hctx.getImageData(0,0,9,8).data; let hash='', bits='';
+  for(let y=0;y<8;y++) for(let x=0;x<8;x++){ const i=(y*9+x)*4, j=i+4; const l1=hd[i]+hd[i+1]+hd[i+2], l2=hd[j]+hd[j+1]+hd[j+2]; bits+=(l1>l2?'1':'0'); if(bits.length===4){ hash+=parseInt(bits,2).toString(16); bits=''; } }
+  return {
+    w:cw,h:ch, tiles:outTiles, answer, actual, same:sameOf(answer), frameHidden,
+    bars:cand.map(b=>({idx:b.idx,h:b.h})), sig, hash, dbg:{W,H,boardTop,boardBottom,bt,bb,h,seps,pitch,a0,hand,gs,p0,redDbg,T0},
+    img:{ q:qImg, a:aImg, strip, ans:answer>=0?tileImg(qc,tiles[answer]):null, act:actual>=0?tileImg(c,tiles[actual]):null,
+          cand:cand.slice(0,6).map(b=>tileImg(qc,tiles[b.idx])) },
+    tileCanvas:{ qc, c, bt, bb, tiles }   // 手動修正用（保存はしない）
+  };
+}
+function sigDiffArr(a,b){ let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; }
+function sameTiles(rec,idx){ if(idx<0||!rec.sig) return []; return rec.tiles.map((t,i)=>i).filter(i=>i!==idx&&sigDiffArr(rec.sig[idx],rec.sig[i])<9); }
+const tilePos=(rec,i)=>{ if(i<0||i==null) return '―'; const t=rec.tiles[i]; if(!t) return '―'; if(t.drawn) return 'ツモ牌'; return '左から'+(i+1)+'枚目'; };
+
+/* ========================= 画面 ========================= */
+let TAB='quiz'; const view=$('#view');
+$$('nav button').forEach(b=>b.addEventListener('click',()=>{TAB=b.dataset.tab;$$('nav button').forEach(x=>x.classList.toggle('on',x===b));render();}));
+function render(){ window.scrollTo(0,0);
+  if(TAB==='quiz') renderQuiz(); else if(TAB==='add') renderAdd(); else if(TAB==='list') renderList(); else renderSettings(); }
+function countsOf(a){ const s={total:a.length,new:0,wrong:0,correct:0,review:0};
+  a.forEach(r=>{ if(r.review)s.review++; if(r.status==='wrong')s.wrong++; else if(r.status==='correct')s.correct++; else s.new++; }); return s; }
+async function stats(){ return countsOf(await dbAll()); }
+const srcKey=r=>r.batch||'none';
+const uploadedAt=list=>Math.min.apply(null,list.map(r=>r.createdAt||Date.now()));
+async function srcGroups(){
+  const m=new Map();
+  (await dbAll()).forEach(r=>{ const k=srcKey(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r); });
+  return [...m.entries()].map(([k,list])=>({key:k,list,at:uploadedAt(list),c:countsOf(list)})).sort((a,b)=>b.at-a.at);
+}
+// 画像の枠（タップ領域つき）
+function shotHTML(src,rec,zones,cls){
+  return `<div class="shot ${cls||''}"><img src="${src}" alt="">`+
+    (zones? rec.tiles.map((t,i)=>`<div class="zone ${zones(i)||''}" data-i="${i}" style="left:${t.x*100}%;top:${t.y*100}%;width:${t.w*100}%;height:${t.h*100}%"></div>`).join(''):'')+`</div>`;
+}
+function stripHTML(rec,zones){
+  return `<div class="strip"><img src="${rec.img.strip}" alt="">`+
+    rec.tiles.map((t,i)=>`<div class="zone ${zones?zones(i)||'':''}" data-i="${i}" style="left:${t.u0*100}%;width:${(t.u1-t.u0)*100}%"></div>`).join('')+`</div>`;
+}
+function candListHTML(rec){
+  const cs=rec.bars||[]; if(!cs.length) return '';
+  const max=cs[0].h||1;
+  return `<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">Mortalの評価（緑棒の高さ）</div>`+
+    cs.slice(0,6).map((b,i)=>`<div class="cand">
+      ${rec.img.cand&&rec.img.cand[i]?`<img class="tileimg" style="height:40px" src="${rec.img.cand[i]}">`:''}
+      <div style="width:92px;font-size:13px">${esc(tilePos(rec,b.idx))}</div>
+      <div class="grow"><div class="bar" style="width:${Math.max(3,(b.h/max)*100)}%;${i===0?'':'opacity:.5'}"></div></div>
+      <div class="small muted" style="width:44px;text-align:right">${Math.round(b.h/max*100)}%</div></div>`).join('')+`</div>`;
+}
+
+/* ---------- クイズ ---------- */
+let QUIZ=null, QSRC=null, PROG=null;
+const MODES={
+  auto:  {label:'おまかせ', f:null},
+  wrong: {label:'不正解だけ', f:r=>r.status==='wrong'},
+  review:{label:'要復習だけ', f:r=>!!r.review},
+  new:   {label:'未出題だけ', f:r=>r.status!=='wrong'&&r.status!=='correct'},
+  correct:{label:'正解済みだけ', f:r=>r.status==='correct'}
+};
+function pickFrom(pool,prevId){
+  const c=pool.filter(r=>r.id!==prevId); if(!c.length) return null;
+  c.sort((a,b)=>(a.lastAnsweredAt||0)-(b.lastAnsweredAt||0));
+  const head=c.slice(0,Math.max(1,Math.ceil(c.length*0.4)));
+  return head[Math.floor(Math.random()*head.length)];
+}
+const byTime=(a,b)=>((a.createdAt||0)-(b.createdAt||0))||String(a.id).localeCompare(String(b.id));
+async function pickNext(prevId,mode,src){
+  let all=await dbAll();
+  if(src) all=all.filter(r=>srcKey(r)===src);
+  if(!all.length) return null;
+  const m=MODES[mode]||MODES.auto;
+  if(src){ const prev=prevId? (all.find(r=>r.id===prevId)||null):null;
+    const pool=(m.f? all.filter(m.f):all).slice().sort(byTime);
+    const rec=prev? (pool.find(r=>r.id!==prev.id&&byTime(r,prev)>0)||null) : (pool[0]||null);
+    PROG=rec? {pos:pool.findIndex(r=>r.id===rec.id)+1,total:pool.length}:null; return rec; }
+  PROG=null;
+  if(m.f) return pickFrom(all.filter(m.f),prevId);
+  const pools=[ all.filter(r=>r.status==='wrong'), all.filter(r=>r.review&&r.status!=='wrong'), all.filter(r=>r.status!=='correct'&&r.status!=='wrong'&&!r.review) ];
+  for(const p of pools){ const r=pickFrom(p,prevId); if(r) return r; }
+  let c=all.filter(r=>r.id!==prevId); if(!c.length) c=all;
+  return c[Math.floor(Math.random()*c.length)];
+}
+function poolLabel(r){
+  if(r.status==='wrong') return '<span class="badge b-wrong">不正解リストから</span>';
+  if(r.review) return '<span class="badge b-review">要復習リストから</span>';
+  if(r.status==='correct') return '<span class="badge b-correct">復習（正解済み）</span>';
+  return '<span class="badge b-new">未出題から</span>';
+}
+const modeBtnHTML=(m,n,color)=>`<button class="modebtn" data-m="${m}" ${n?'':'disabled'}><span class="n" style="color:${color}">${n}</span><span class="l">${MODES[m].label}</span></button>`;
+const modeGridHTML=s=>`<div class="modes">${modeBtnHTML('wrong',s.wrong,'var(--bad)')}${modeBtnHTML('review',s.review,'var(--review)')}${modeBtnHTML('new',s.new,'var(--fg)')}${modeBtnHTML('correct',s.correct,'var(--good)')}</div>`;
+const countsHTML=(c,center)=>`<div class="cs"${center?' style="justify-content:center"':''}>
+    <span style="color:var(--bad)">不正解 ${c.wrong}</span><span style="color:var(--review)">要復習 ${c.review}</span>
+    <span class="muted">未出題 ${c.new}</span><span style="color:var(--good)">正解 ${c.correct}</span></div>`;
+async function renderQuiz(){
+  if(QUIZ) return drawQuiz();
+  if(QSRC) return renderQuizSrc();
+  const s=await stats(), groups=await srcGroups();
+  view.innerHTML=`<div class="${groups.length>1?'':'startpane'}"><div class="card" style="margin:0">
+    <h2 class="center">スクショ何切る</h2>
+    <p class="small muted center">解きたいリストを選んでください。<br>選んだリストの中だけを出題します。</p>
+    <div style="margin-top:12px">${modeGridHTML(s)}</div>
+    ${s.total?'':'<p class="small muted center" style="margin-top:12px">「取り込み」タブで Mortal 検討画面のスクリーンショットを登録してください。</p>'}
+  </div>
+  ${groups.length?`<div class="card" style="margin:12px 0 0">
+    <h2 style="font-size:16px">取り込んだ回ごとに解く</h2>
+    <p class="small muted">まとめて取り込んだ画像を、取り込んだ順に出題します。</p>
+    <div style="margin-top:10px">${groups.map(g=>`<button class="srcbtn" data-s="${esc(g.key)}">
+      <div class="row"><b>取り込み ${fmtDT(g.at)}</b><span class="grow"></span><span class="small muted">${g.c.total}問 ›</span></div>
+      ${countsHTML(g.c)}</button>`).join('')}</div>
+  </div>`:''}</div>`;
+  $$('.modebtn').forEach(b=>b.addEventListener('click',()=>startQuiz(b.dataset.m)));
+  $$('.srcbtn').forEach(b=>b.addEventListener('click',()=>{QSRC=b.dataset.s;renderQuiz();}));
+}
+async function renderQuizSrc(){
+  const g=(await srcGroups()).find(x=>x.key===QSRC);
+  if(!g){ QSRC=null; return renderQuiz(); }
+  const s=g.c;
+  view.innerHTML=`<button class="btn-ghost btn-sm" id="back">← 選択に戻る</button>
+  <div class="card" style="margin-top:10px">
+    <h2 class="center">取り込み ${fmtDT(g.at)}</h2>
+    <p class="small muted center">この回の${s.total}問だけを、取り込んだ順に出題します。</p>
+    ${countsHTML(s,1)}
+    <button class="btn-primary btn-block" data-m="auto" style="margin-top:12px">最初から順番に全部解く（${s.total}問）</button>
+    <p class="small muted center" style="margin:10px 0 6px">リストをしぼる</p>${modeGridHTML(s)}
+  </div>`;
+  $('#back').addEventListener('click',()=>{QSRC=null;renderQuiz();});
+  $$('[data-m]').forEach(b=>b.addEventListener('click',()=>startQuiz(b.dataset.m,QSRC)));
+}
+async function startQuiz(mode,src){
+  const rec=await pickNext(null,mode,src);
+  if(!rec){ toast(MODES[mode].label+'に出題できる問題がありません'); return; }
+  CFG.mode=mode; QSRC=src||null;
+  QUIZ={rec,reveal:false,sel:-1,chosen:-1,mode,src,pos:PROG&&PROG.pos,total:PROG&&PROG.total}; drawQuiz();
+}
+function drawDone(mode){
+  QUIZ=null;
+  view.innerHTML=`<div class="card center"><h2>${esc(MODES[mode].label)}は終わりました 🎉</h2>
+    <p class="small muted">${QSRC?'この回の最後の問題まで解き終わりました。':'このリストに出題できる問題がなくなりました。'}</p>
+    <button class="btn-primary btn-block" id="back" style="margin-top:10px">リスト選択に戻る</button></div>`;
+  $('#back').addEventListener('click',()=>{QSRC=null;renderQuiz();});
+}
+function isCorrect(rec,i){ return i>=0 && (i===rec.answer || (rec.same||[]).indexOf(i)>=0); }
+function drawQuiz(){
+  const {rec,reveal}=QUIZ;
+  const zonesQ=i=>i===QUIZ.sel?'sel':'';
+  const zonesA=i=>isCorrect(rec,i)?'ans':(QUIZ.chosen===i?'ng':'');
+  view.innerHTML=`
+    <div class="row" style="margin-bottom:8px">${poolLabel(rec)}<span class="chip">${esc((MODES[QUIZ.mode]||MODES.auto).label)}</span>
+      ${QUIZ.src&&QUIZ.pos?`<span class="chip">${QUIZ.pos}/${QUIZ.total}</span>`:''}<span class="grow"></span>
+      <span class="small muted">◯${rec.correctCount||0} / ✕${rec.wrongCount||0}</span></div>
+    ${shotHTML(reveal?rec.img.a:rec.img.q,rec,reveal?zonesA:null)}
+    <p class="small muted" style="margin:8px 0 0">${reveal?'緑の棒がMortalの推奨度です。':'何を切る？ 下の手牌をタップして「決定」'}</p>
+    ${stripHTML(rec,reveal?zonesA:zonesQ)}
+    <div id="ans"></div>
+    <div id="act" style="margin-top:12px"></div>`;
+  const act=$('#act'), ans=$('#ans');
+  if(!reveal){
+    act.innerHTML=`<button class="btn-primary btn-block" id="go" ${QUIZ.sel<0?'disabled':''}>${QUIZ.sel<0?'牌をタップして選んでください':'この牌を切る（決定）'}</button>
+      <div class="row" style="margin-top:8px"><button class="btn-ghost grow btn-sm" id="show">答えを見る（採点しない）</button>
+        <button class="btn-ghost btn-sm" id="skip">スキップ</button><button class="btn-ghost btn-sm" id="quit">終了</button></div>`;
+    $$('.strip .zone').forEach(z=>z.addEventListener('click',()=>{ QUIZ.sel=+z.dataset.i; drawQuiz(); }));
+    $('#go').addEventListener('click',()=>{ if(QUIZ.sel<0) return; QUIZ.chosen=QUIZ.sel; QUIZ.reveal=true; mark(isCorrect(rec,QUIZ.sel)); drawQuiz(); });
+    $('#show').addEventListener('click',()=>{QUIZ.reveal=true;drawQuiz();});
+    $('#skip').addEventListener('click',next);
+  } else {
+    const judged=QUIZ.chosen>=0, ok=judged&&isCorrect(rec,QUIZ.chosen);
+    ans.innerHTML=`${judged?`<div class="result ${ok?'ok':'ng'}">${ok?'◯ 正解！':'✕ 不正解'}</div>`:''}
+      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${rec.img.ans?`<img class="tileimg" src="${rec.img.ans}">`:''}<span>${esc(tilePos(rec,rec.answer))}</span></div>
+        ${rec.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${rec.img.act?`<img class="tileimg" src="${rec.img.act}">`:''}<span>${esc(tilePos(rec,rec.actual))}${rec.actual===rec.answer||(rec.same||[]).indexOf(rec.actual)>=0?'（推奨どおり）':''}</span></div>`:''}
+        ${judged&&!ok?`<div class="row" style="margin-top:6px"><span>あなた：</span><span>${esc(tilePos(rec,QUIZ.chosen))}</span></div>`:''}
+        ${rec.manual?'<div class="small muted" style="margin-top:4px">※正解は取り込み時に手動で指定されたものです</div>':''}
+      </div>${candListHTML(rec)}`;
+    act.innerHTML=(judged?'':`<div class="small muted center" style="margin-bottom:6px">自己採点（リストに振り分けます）</div>
+      <div class="row"><button class="btn-primary grow" id="ok">◯ 正解だった</button><button class="btn-danger grow" id="ng">✕ 間違えた</button></div>`)+
+      `<div class="row" style="margin-top:8px">
+        <button class="${rec.review?'btn-warn':'btn-ghost'} grow" id="rev">${rec.review?'★ 要復習リスト登録済み':'☆ 要復習に入れる'}</button>
+        <button class="btn-ghost" id="quit">終了</button></div>
+      <button class="${judged?'btn-primary':'btn-ghost'} btn-block" id="next" style="margin-top:8px">次の問題へ</button>`;
+    const okb=$('#ok'); if(okb){ okb.addEventListener('click',()=>{mark(true);next();}); $('#ng').addEventListener('click',()=>{mark(false);next();}); }
+    $('#rev').addEventListener('click',async()=>{ rec.review=!rec.review; await dbPut(rec); toast(rec.review?'要復習リストに追加':'要復習リストから削除'); drawQuiz(); });
+    $('#next').addEventListener('click',next);
+  }
+  $('#quit').addEventListener('click',()=>{QUIZ=null;renderQuiz();});
+}
+async function next(){
+  const prev=QUIZ&&QUIZ.rec.id, mode=(QUIZ&&QUIZ.mode)||'auto', src=QUIZ&&QUIZ.src;
+  const rec=await pickNext(prev,mode,src);
+  if(!rec){ drawDone(mode); return; }
+  QUIZ={rec,reveal:false,sel:-1,chosen:-1,mode,src,pos:PROG&&PROG.pos,total:PROG&&PROG.total}; drawQuiz();
+}
+function mark(ok){
+  const rec=QUIZ.rec;
+  rec.attempts=(rec.attempts||0)+1;
+  if(ok) rec.correctCount=(rec.correctCount||0)+1; else rec.wrongCount=(rec.wrongCount||0)+1;
+  rec.status=ok?'correct':'wrong'; rec.lastAnsweredAt=Date.now();
+  dbPut(rec);
+}
+
+/* ---------- 取り込み ---------- */
+let QUEUE=[], running=false, BATCH=null;
+function renderAdd(){
+  view.innerHTML=`<div class="card">
+    <h2>スクリーンショットを取り込む</h2>
+    <p class="small muted">Mortal（mjai.ekyu.moe）の検討画面で、<b>手牌と緑の棒が見える状態</b>のスクリーンショットを選んでください。
+    緑の棒（AIの推奨）と赤枠（実戦の打牌）をこの端末内で消して問題にします。<b>通信もAPI利用料も不要</b>です。</p>
+    <div class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" multiple style="display:none">
+      <button class="btn-primary btn-block" id="pick">画像を選ぶ（複数可）</button>
+      <p class="small muted" style="margin:8px 0 0">ここに画像をドロップ／ペーストしてもOK</p>
+    </div>
+  </div>
+  <div id="queue"></div>`;
+  $('#pick').addEventListener('click',()=>$('#file').click());
+  $('#file').addEventListener('change',e=>{ addFiles(e.target.files); e.target.value=''; });
+  const dz=$('#drop');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');addFiles(e.dataTransfer.files);});
+  drawQueue();
+}
+document.addEventListener('paste',e=>{ if(TAB!=='add') return; const fs=[...(e.clipboardData&&e.clipboardData.files||[])].filter(f=>/^image\//.test(f.type)); if(fs.length) addFiles(fs); });
+function addFiles(files){
+  const fs=[...files].filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|heic)$/i.test(f.name));
+  if(!fs.length){ toast('画像ファイルを選んでください'); return; }
+  if(!BATCH||Date.now()-BATCH.at>10*60*1000) BATCH={id:uid(),at:Date.now()};
+  fs.forEach(f=>QUEUE.unshift({id:uid(),file:f,state:'wait',msg:'待機中'}));
+  drawQueue(); runQueue();
+}
+function drawQueue(){
+  const box=$('#queue'); if(!box) return;
+  if(!QUEUE.length){ box.innerHTML=''; return; }
+  const done=QUEUE.filter(q=>q.state==='done');
+  box.innerHTML=(done.length>1?`<button class="btn-primary btn-block" id="saveall" style="margin-bottom:10px">読み取れた ${done.length}件をまとめて保存</button>`:'')+
+   QUEUE.map(q=>{
+    if(q.state==='done'){ const r=q.result, ok=r.answer>=0;
+      return `<div class="queue-item" data-id="${q.id}">
+      <div class="row" style="margin-bottom:6px"><b>${ok?'読み取り結果':'推奨牌が見つかりません'}</b><span class="grow"></span><span class="small muted">${esc(q.file.name.slice(0,24))}</span></div>
+      ${ok?`<div class="row"><span class="small">Mortalの推奨：</span>${r.img.ans?`<img class="tileimg" src="${r.img.ans}">`:''}<span class="small">${esc(tilePos(r,r.answer))}</span>
+        ${r.actual>=0?`<span class="small muted">／ 実戦：${esc(tilePos(r,r.actual))}</span>`:''}${r.dup?'<span class="badge b-review">同じ画像が登録済み</span>':''}</div>`
+        :`<p class="small" style="color:var(--review);margin:0 0 6px">緑の棒が見つかりませんでした。下の手牌で正解の牌をタップすると手動で登録できます。</p>`}
+      <div class="small muted" style="margin:6px 0 2px">${r.manual?'手動で指定した正解（緑枠）':'正解（緑枠）が違うときは、正しい牌をタップして直してください'}</div>
+      ${stripHTML(r,i=>i===r.answer?'ans':'')}
+      <details><summary>問題画像のプレビュー</summary>${shotHTML(r.img.q,r,null)}</details>
+      <div class="row" style="margin-top:8px"><button class="btn-primary grow" data-save="${q.id}" ${r.answer>=0?'':'disabled'}>保存</button>
+      <button class="btn-ghost" data-drop="${q.id}">破棄</button></div></div>`; }
+    if(q.state==='error') return `<div class="queue-item" data-id="${q.id}">
+      <p style="color:var(--bad);margin:0 0 6px"><b>読み取り失敗</b> <span class="small muted">${esc(q.file.name.slice(0,24))}</span></p><p class="small muted">${esc(q.error)}</p>
+      <div class="row" style="margin-top:8px"><button class="btn-ghost grow" data-retry="${q.id}">再試行</button><button class="btn-ghost" data-drop="${q.id}">削除</button></div></div>`;
+    return `<div class="queue-item"><span class="spin"></span> ${esc(q.msg)} <span class="small muted">${esc(q.file.name.slice(0,24))}</span></div>`;
+  }).join('');
+  $$('[data-id] .strip .zone',box).forEach(z=>z.addEventListener('click',()=>{
+    const q=QUEUE.find(x=>x.id===z.closest('[data-id]').dataset.id); if(!q||q.state!=='done') return;
+    const i=+z.dataset.i, r=q.result;
+    r.answer=i; r.manual=true; r.same=sameTiles(r,i);
+    r.img.ans=r.tileCanvas? tileCut(r.tileCanvas,i):r.img.ans;
+    if(!r.bars.some(b=>b.idx===i)) r.bars=[{idx:i,h:1}].concat(r.bars);
+    drawQueue(); toast('正解を'+tilePos(r,i)+'にしました',1600);
+  }));
+  $$('[data-save]',box).forEach(b=>b.addEventListener('click',()=>saveQueued(b.dataset.save)));
+  const sa=$('#saveall'); if(sa) sa.addEventListener('click',async()=>{ for(const q of QUEUE.filter(x=>x.state==='done'&&x.result.answer>=0)) await saveQueued(q.id,true); toast('保存しました'); drawQueue(); });
+  $$('[data-drop]',box).forEach(b=>b.addEventListener('click',()=>{QUEUE=QUEUE.filter(x=>x.id!==b.dataset.drop);drawQueue();}));
+  $$('[data-retry]',box).forEach(b=>b.addEventListener('click',()=>{ const q=QUEUE.find(x=>x.id===b.dataset.retry); if(q){q.state='wait';q.msg='待機中';drawQueue();runQueue();}}));
+}
+function tileCut(tc,i){ const t=tc.tiles[i], o=document.createElement('canvas'); const x=Math.round(t.x0)+1, w=Math.round(t.x1)-Math.round(t.x0)-2, y=tc.bt-1, h=tc.bb-tc.bt+3;
+  const s=96/w; o.width=Math.round(w*s); o.height=Math.round(h*s); o.getContext('2d').drawImage(tc.qc,x,y,w,h,0,0,o.width,o.height); return o.toDataURL('image/jpeg',.8); }
+async function saveQueued(id,quiet){
+  const q=QUEUE.find(x=>x.id===id); if(!q||q.state!=='done') return;
+  const r=q.result; if(r.answer<0){ toast('正解の牌をタップして指定してください'); return; }
+  const rec={id:uid(),createdAt:Date.now(),batch:BATCH?BATCH.id:'none',file:q.file.name,
+    w:r.w,h:r.h,tiles:r.tiles,answer:r.answer,actual:r.actual,same:r.same,bars:r.bars,sig:r.sig,hash:r.hash,manual:!!r.manual,frameHidden:r.frameHidden,
+    img:r.img,status:'new',review:false,attempts:0,correctCount:0,wrongCount:0,lastAnsweredAt:null};
+  await dbPut(rec);
+  QUEUE=QUEUE.filter(x=>x.id!==id);
+  if(!quiet){ drawQueue(); toast('保存しました'); }
+}
+async function runQueue(){
+  if(running) return; running=true;
+  try{ while(true){
+    const q=QUEUE.slice().reverse().find(x=>x.state==='wait'); if(!q) break;
+    q.state='work'; q.msg='解析中…'; drawQueue();
+    try{ const im=await fileToImage(q.file); await new Promise(r=>setTimeout(r,20));
+      q.result=analyzeImage(im);
+      const all=await dbAll(); q.result.dup=all.some(x=>x.hash&&hamming(x.hash,q.result.hash)<=4);
+      q.state='done'; }
+    catch(e){ q.state='error'; q.error=e.message||String(e); }
+    drawQueue();
+  }} finally{ running=false; }
+}
+
+/* ---------- 一覧 ---------- */
+let FILTER='all';
+async function renderList(){
+  const all=(await dbAll()).sort((a,b)=>(b.createdAt-a.createdAt));
+  const s=await stats();
+  const F={all:()=>true,new:r=>r.status!=='wrong'&&r.status!=='correct',wrong:r=>r.status==='wrong',correct:r=>r.status==='correct',review:r=>!!r.review};
+  const items=all.filter(F[FILTER]);
+  const gAll=new Map(), gShow=new Map();
+  all.forEach(r=>{ const k=srcKey(r); if(!gAll.has(k)) gAll.set(k,[]); gAll.get(k).push(r); });
+  items.forEach(r=>{ const k=srcKey(r); if(!gShow.has(k)) gShow.set(k,[]); gShow.get(k).push(r); });
+  const mode = FILTER==='all'?'auto':FILTER;
+  const body=[...gShow.keys()].map(k=>{
+    const list=gShow.get(k), whole=gAll.get(k)||[], c=countsOf(whole);
+    return `<div class="group"><div class="ghead">
+        <div class="row"><b>取り込み ${fmtDT(uploadedAt(whole))}</b><span class="grow"></span><span class="small muted">${list.length}問</span></div>
+        ${countsHTML(c)}
+        <button class="btn-ghost btn-sm btn-block" data-q="${esc(k)}" style="margin-top:8px">この回の「${esc(MODES[mode].label)}」を順番に出題（${list.length}問）</button>
+      </div>
+      ${list.map(r=>`<div class="list-item" data-open="${esc(r.id)}">
+        <div class="row" style="gap:6px;margin-bottom:4px">
+          ${r.status==='wrong'?'<span class="badge b-wrong">不正解</span>':r.status==='correct'?'<span class="badge b-correct">正解</span>':'<span class="badge b-new">未出題</span>'}
+          ${r.review?'<span class="badge b-review">要復習</span>':''}${r.manual?'<span class="chip">手動</span>':''}
+          <span class="grow"></span><span class="small muted">◯${r.correctCount||0} / ✕${r.wrongCount||0}</span></div>
+        ${r.img&&r.img.strip?`<img class="strip" src="${r.img.strip}" alt="">`:'<p class="small muted">（画像なし）</p>'}
+      </div>`).join('')}</div>`;
+  }).join('');
+  view.innerHTML=`<div class="filters">
+    <button data-f="all" class="${FILTER==='all'?'on':''}">全部 ${s.total}</button>
+    <button data-f="wrong" class="${FILTER==='wrong'?'on':''}">不正解 ${s.wrong}</button>
+    <button data-f="review" class="${FILTER==='review'?'on':''}">要復習 ${s.review}</button>
+    <button data-f="new" class="${FILTER==='new'?'on':''}">未出題 ${s.new}</button>
+    <button data-f="correct" class="${FILTER==='correct'?'on':''}">正解 ${s.correct}</button></div>
+    ${body||'<p class="muted center">該当なし</p>'}`;
+  $$('.filters button').forEach(b=>b.addEventListener('click',()=>{FILTER=b.dataset.f;renderList();}));
+  $$('[data-open]').forEach(b=>b.addEventListener('click',()=>openDetail(b.dataset.open)));
+  $$('[data-q]').forEach(b=>b.addEventListener('click',()=>{ TAB='quiz'; $$('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='quiz')); startQuiz(mode,b.dataset.q); }));
+}
+async function openDetail(id){
+  const r=await dbGet(id); if(!r) return;
+  const zonesA=i=>(i===r.answer||(r.same||[]).indexOf(i)>=0)?'ans':'';
+  view.innerHTML=`<button class="btn-ghost btn-sm" id="back">← 一覧に戻る</button>
+    <div class="card" style="margin-top:10px">
+      <div class="row" style="margin-bottom:8px">
+        ${r.status==='wrong'?'<span class="badge b-wrong">不正解</span>':r.status==='correct'?'<span class="badge b-correct">正解</span>':'<span class="badge b-new">未出題</span>'}
+        ${r.review?'<span class="badge b-review">要復習</span>':''}<span class="grow"></span>
+        <span class="small muted">${fmtDT(r.createdAt)}</span></div>
+      ${r.img?shotHTML(r.img.a,r,zonesA):''}
+      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${r.img&&r.img.ans?`<img class="tileimg" src="${r.img.ans}">`:''}<span>${esc(tilePos(r,r.answer))}</span></div>
+        ${r.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${r.img&&r.img.act?`<img class="tileimg" src="${r.img.act}">`:''}<span>${esc(tilePos(r,r.actual))}</span></div>`:''}</div>
+      ${candListHTML(r)}
+      <div class="small muted" style="margin-top:8px">正解が違うときは、下の手牌で正しい牌をタップすると直せます。</div>
+      ${r.img?stripHTML(r,zonesA):''}
+      ${r.img?`<details><summary>問題として表示される画像</summary>${shotHTML(r.img.q,r,null)}</details>`:''}
+      <div class="row" style="margin-top:12px">
+        <button class="${r.review?'btn-warn':'btn-ghost'} grow" id="rev">${r.review?'★ 要復習を解除':'☆ 要復習にする'}</button>
+        <button class="btn-ghost" id="reset">未出題に戻す</button></div>
+      <button class="btn-danger btn-block btn-sm" id="del" style="margin-top:8px">削除</button>
+    </div>`;
+  $('#back').addEventListener('click',renderList);
+  $$('.strip .zone').forEach(z=>z.addEventListener('click',async()=>{ const i=+z.dataset.i; if(i===r.answer) return;
+    r.answer=i; r.manual=true; r.same=sameTiles(r,i); if(!(r.bars||[]).some(b=>b.idx===i)) r.bars=[{idx:i,h:1}].concat(r.bars||[]);
+    if(r.img&&r.img.cand){ const bi=r.bars.findIndex(b=>b.idx===i); r.img.ans=bi>=0&&r.img.cand[bi]?r.img.cand[bi]:r.img.ans; }
+    await dbPut(r); toast('正解を'+tilePos(r,i)+'にしました'); openDetail(id); }));
+  $('#rev').addEventListener('click',async()=>{r.review=!r.review;await dbPut(r);openDetail(id);});
+  $('#reset').addEventListener('click',async()=>{r.status='new';await dbPut(r);toast('未出題に戻しました');openDetail(id);});
+  $('#del').addEventListener('click',async()=>{if(!confirm('削除しますか？'))return;await dbDel(id);toast('削除しました');renderList();});
+}
+
+/* ---------- 設定 ---------- */
+async function renderSettings(){
+  const s=await stats();
+  view.innerHTML=`<div class="card">
+    <h2>データ</h2>
+    <div class="stats" style="margin-bottom:10px">
+      <div><span class="n">${s.total}</span><span class="l">問題</span></div>
+      <div><span class="n" style="color:var(--bad)">${s.wrong}</span><span class="l">不正解</span></div>
+      <div><span class="n" style="color:var(--review)">${s.review}</span><span class="l">要復習</span></div>
+      <div><span class="n" style="color:var(--good)">${s.correct}</span><span class="l">正解</span></div></div>
+    <p class="small muted">問題と学習状況はこの端末のブラウザ内だけに保存されます。外部への送信はありません。</p>
+    <div class="row"><button class="btn-primary grow" id="exp">バックアップ書き出し</button><button class="btn-ghost grow" id="imp">読み込み</button></div>
+    <input type="file" id="impf" accept="application/json" style="display:none">
+    <button class="btn-danger btn-block btn-sm" id="clr" style="margin-top:10px">すべて削除</button>
+  </div>
+  <div class="card">
+    <h2>取り込み</h2>
+    <label class="sw"><input type="checkbox" id="hf" ${CFG.hideFrame?'checked':''}><span>実戦で切った牌の赤枠も消す（次回の取り込みから）</span></label>
+    <p class="small muted">赤枠を残すと、実戦でどれを切ったかがヒントになってしまうので、通常はオンのままをおすすめします。</p>
+  </div>
+  <div class="card">
+    <h2>保存の状態</h2>
+    <table class="diag">
+      <tr><td>IndexedDB</td><td>${esc(DIAG.idb)}</td></tr>
+      <tr><td>localStorage</td><td>${esc(DIAG.ls)}</td></tr>
+      <tr><td>永続ストレージ</td><td>${DIAG.persisted===true?'<span style="color:var(--good)">許可済み（消えにくい）</span>':DIAG.persisted===false?'<span style="color:var(--review)">未許可</span>':'不明'}</td></tr>
+      <tr><td>使用量</td><td>${DIAG.usage!=null?(DIAG.usage/1048576).toFixed(1)+' MB'+(DIAG.quota?' / '+(DIAG.quota/1048576).toFixed(0)+' MB':''):'不明'}</td></tr>
+      <tr><td>最終保存</td><td>${DIAG.lastSaveAt?new Date(DIAG.lastSaveAt).toLocaleString('ja-JP'):'―'}</td></tr>
+      ${DIAG.lastError?`<tr><td>エラー</td><td style="color:var(--bad)">${esc(DIAG.lastError)}</td></tr>`:''}
+    </table>
+    <button class="btn-ghost btn-block btn-sm" id="persist" style="margin-top:10px">永続ストレージを要求する</button>
+    <details><summary>データが消えてしまうときは</summary>
+      <p class="small muted">・iPhoneのSafariは、7日間そのサイトを開かないと保存データを自動削除することがあります。<b>共有ボタン →「ホーム画面に追加」</b>で追加したアイコンから開くと消えにくくなります。<br>
+      ・プライベートブラウズでは保存できません。<br>・履歴/サイトデータの消去でも消えます。<br>
+      ・確実に残したい場合は上の<b>バックアップ書き出し</b>でファイル保存してください（画像も含まれます）。</p>
+    </details>
+  </div>
+  <div class="card">
+    <h2>アプリの更新</h2>
+    <p class="small muted">バージョン <b>${APP_VERSION}</b>。スマホのキャッシュで古い画面のままになることがあります。うまく更新されないときはこちら。</p>
+    <button class="btn-ghost btn-block btn-sm" id="reloadapp">最新版に更新する</button>
+  </div>
+  <p class="small muted center" style="margin-top:10px">Mortal スクショ何切る / データは端末内のみ</p>`;
+  $('#hf').addEventListener('change',e=>{ CFG.hideFrame=e.target.checked; toast(e.target.checked?'赤枠を消します':'赤枠を残します',1500); });
+  $('#reloadapp').addEventListener('click',async()=>{ await flush(); location.replace(location.pathname+'?v='+Date.now()); });
+  $('#persist').addEventListener('click',async()=>{ await askPersist();
+    toast(DIAG.persisted===true?'永続ストレージが許可されました':'この環境では許可されませんでした（ホーム画面に追加すると通りやすくなります）',4000); renderSettings(); });
+  $('#exp').addEventListener('click',async()=>{
+    const all=await dbAll();
+    const b=new Blob([JSON.stringify({v:1,app:'mortal-shot-quiz',exportedAt:Date.now(),items:all})],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mortal-shot-quiz-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);});
+  $('#imp').addEventListener('click',()=>$('#impf').click());
+  $('#impf').addEventListener('change',async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    try{const j=JSON.parse(await f.text());const ex=new Set((await dbAll()).map(r=>r.id)); let n=0;
+      for(const it of (j.items||[])){ if(!it||!it.id||ex.has(it.id)) continue; await dbPut(it); ex.add(it.id); n++; }
+      await flush(); toast(n+'件読み込みました'); renderSettings();}catch(err){toast('失敗：'+err.message);}});
+  $('#clr').addEventListener('click',async()=>{if(!confirm('すべての問題を削除します。よろしいですか？'))return; await dbClear();QUIZ=null;toast('削除しました');renderSettings();});
+}
+async function boot(){
+  await loadAll(); render(); askPersist();
+  if(String(DIAG.idb).indexOf('使用不可')===0 && String(DIAG.ls).indexOf('OK')!==0)
+    toast('この環境ではデータを保存できません。プライベートブラウズを解除するか、ホーム画面に追加してください',7000);
+}
+boot();
+</script>
+</body>
+</html>
