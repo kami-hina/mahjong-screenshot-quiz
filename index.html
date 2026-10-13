@@ -106,7 +106,7 @@ table.diag td:first-child{color:var(--muted);width:38%}
 </nav>
 <script>
 "use strict";
-const APP_VERSION='2026-10-11a';
+const APP_VERSION='2026-10-13a';
 /* ========================= 小物 ========================= */
 const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -155,6 +155,7 @@ function mergeRec(r){
   const ta=cur.updatedAt||cur.lastAnsweredAt||cur.createdAt||0, tb=r.updatedAt||r.lastAnsweredAt||r.createdAt||0;
   const win=Object.assign({}, tb>=ta? r : cur);
   if(!win.img && (cur.img||r.img)) win.img=cur.img||r.img;
+  if(!win.lite && (cur.lite||r.lite)) win.lite=cur.lite||r.lite;
   MEM.set(r.id,win);
 }
 async function loadAll(){
@@ -177,8 +178,14 @@ async function flush(){
   const recs=[...MEM.values()];
   const stat={}; recs.forEach(r=>{ stat[r.id]=[r.status,r.review?1:0,r.correctCount||0,r.wrongCount||0,r.lastAnsweredAt||0]; });
   lsSet(LS_STAT,stat);
-  if(lsSet(LS_DB, recs.map(r=>{ const c=Object.assign({},r); delete c.img; return c; }))) DIAG.ls='OK（'+recs.length+'件）';
-  else DIAG.ls='書き込み失敗（容量超過など）';
+  // localStorage には画像のフル版を除いたコピーを置く。容量に収まらなければ古いものから軽量画像を外して再試行
+  const byNew=recs.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  let lsOk=false;
+  for(const keep of [Infinity,200,120,80,40,20,0]){
+    const list=byNew.map((r,i)=>{ const c=Object.assign({},r); delete c.img; if(i>=keep) delete c.lite; return c; });
+    if(lsSet(LS_DB,list)){ lsOk=true; DIAG.ls='OK（'+recs.length+'件'+(keep<recs.length?'、画像つきは新しい'+keep+'件':'')+'）'; break; }
+  }
+  if(!lsOk) DIAG.ls='書き込み失敗（容量超過など）';
   const ids=[...DIRTY], dels=[...DELETED];
   if(ids.length||dels.length){
     try{
@@ -325,7 +332,7 @@ function analyzeImage(img){
       const ya=y0+Math.floor((y1-y0)*gy/8), yb=Math.max(ya+1,y0+Math.floor((y1-y0)*(gy+1)/8));
       const xa=x0+Math.floor((x1-x0)*gx2/6), xb=Math.max(xa+1,x0+Math.floor((x1-x0)*(gx2+1)/6));
       for(let y=ya;y<yb;y++) for(let x=xa;x<xb;x++){ if(x<0||x>=W||y<0||y>=H) continue; const i=P(x,y); r+=q[i];g+=q[i+1];b+=q[i+2];n2++; }
-      out.push(n2?r/n2:0,n2?g/n2:0,n2?b/n2:0); }
+      out.push(n2?Math.round(r/n2):0,n2?Math.round(g/n2):0,n2?Math.round(b/n2):0); }
     return out; });
   const sigDiff=(a,b)=>{ let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; };
   // 同じ絵柄の牌（見た目がほぼ一致）と、緑棒の高さが同じ牌はどれを切っても正解にする
@@ -351,6 +358,9 @@ function analyzeImage(img){
     bars:cand.map(b=>({idx:b.idx,h:b.h})), sig, hash, dbg:{W,H,boardTop,boardBottom,bt,bb,h,seps,pitch,a0,hand,gs,p0,redDbg,T0},
     img:{ q:qImg, a:aImg, strip, ans:answer>=0?tileImg(qc,tiles[answer]):null, act:actual>=0?tileImg(c,tiles[actual]):null,
           cand:cand.slice(0,6).map(b=>tileImg(qc,tiles[b.idx])) },
+    // localStorage 用の軽量コピー（IndexedDB が消えてもクイズが続けられるように）
+    lite:{ q:cut(qc,0,cropTop,cw,ch,Math.min(cw,380),.55), a:cut(c,0,cropTop,cw,ch,Math.min(cw,380),.55),
+           strip:cut(qc,sx0,sy0,sx1-sx0,sy1-sy0,Math.min(sx1-sx0,420),.6) },
     tileCanvas:{ qc, c, bt, bb, tiles }   // 手動修正用（保存はしない）
   };
 }
@@ -373,13 +383,16 @@ async function srcGroups(){
   (await dbAll()).forEach(r=>{ const k=srcKey(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r); });
   return [...m.entries()].map(([k,list])=>({key:k,list,at:uploadedAt(list),c:countsOf(list)})).sort((a,b)=>b.at-a.at);
 }
+// 画像セット：フル版（IndexedDB）が無ければ軽量版（localStorage）を使う
+const IM=r=>Object.assign({},r.lite||{},r.img||{});
+const hasImg=r=>!!(IM(r).q);
 // 画像の枠（タップ領域つき）
 function shotHTML(src,rec,zones,cls){
   return `<div class="shot ${cls||''}"><img src="${src}" alt="">`+
     (zones? rec.tiles.map((t,i)=>`<div class="zone ${zones(i)||''}" data-i="${i}" style="left:${t.x*100}%;top:${t.y*100}%;width:${t.w*100}%;height:${t.h*100}%"></div>`).join(''):'')+`</div>`;
 }
 function stripHTML(rec,zones){
-  return `<div class="strip"><img src="${rec.img.strip}" alt="">`+
+  return `<div class="strip"><img src="${IM(rec).strip}" alt="">`+
     rec.tiles.map((t,i)=>`<div class="zone ${zones?zones(i)||'':''}" data-i="${i}" style="left:${t.u0*100}%;width:${(t.u1-t.u0)*100}%"></div>`).join('')+`</div>`;
 }
 function candListHTML(rec){
@@ -387,7 +400,7 @@ function candListHTML(rec){
   const max=cs[0].h||1;
   return `<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">Mortalの評価（緑棒の高さ）</div>`+
     cs.slice(0,6).map((b,i)=>`<div class="cand">
-      ${rec.img.cand&&rec.img.cand[i]?`<img class="tileimg" style="height:40px" src="${rec.img.cand[i]}">`:''}
+      ${IM(rec).cand&&IM(rec).cand[i]?`<img class="tileimg" style="height:40px" src="${IM(rec).cand[i]}">`:''}
       <div style="width:92px;font-size:13px">${esc(tilePos(rec,b.idx))}</div>
       <div class="grow"><div class="bar" style="width:${Math.max(3,(b.h/max)*100)}%;${i===0?'':'opacity:.5'}"></div></div>
       <div class="small muted" style="width:44px;text-align:right">${Math.round(b.h/max*100)}%</div></div>`).join('')+`</div>`;
@@ -410,7 +423,7 @@ function pickFrom(pool,prevId){
 }
 const byTime=(a,b)=>((a.createdAt||0)-(b.createdAt||0))||String(a.id).localeCompare(String(b.id));
 async function pickNext(prevId,mode,src){
-  let all=await dbAll();
+  let all=(await dbAll()).filter(hasImg);
   if(src) all=all.filter(r=>srcKey(r)===src);
   if(!all.length) return null;
   const m=MODES[mode]||MODES.auto;
@@ -493,7 +506,7 @@ function drawQuiz(){
     <div class="row" style="margin-bottom:8px">${poolLabel(rec)}<span class="chip">${esc((MODES[QUIZ.mode]||MODES.auto).label)}</span>
       ${QUIZ.src&&QUIZ.pos?`<span class="chip">${QUIZ.pos}/${QUIZ.total}</span>`:''}<span class="grow"></span>
       <span class="small muted">◯${rec.correctCount||0} / ✕${rec.wrongCount||0}</span></div>
-    ${shotHTML(reveal?rec.img.a:rec.img.q,rec,reveal?zonesA:null)}
+    ${shotHTML(reveal?IM(rec).a:IM(rec).q,rec,reveal?zonesA:null)}
     <p class="small muted" style="margin:8px 0 0">${reveal?'緑の棒がMortalの推奨度です。':'何を切る？ 下の手牌をタップして「決定」'}</p>
     ${stripHTML(rec,reveal?zonesA:zonesQ)}
     <div id="ans"></div>
@@ -510,8 +523,8 @@ function drawQuiz(){
   } else {
     const judged=QUIZ.chosen>=0, ok=judged&&isCorrect(rec,QUIZ.chosen);
     ans.innerHTML=`${judged?`<div class="result ${ok?'ok':'ng'}">${ok?'◯ 正解！':'✕ 不正解'}</div>`:''}
-      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${rec.img.ans?`<img class="tileimg" src="${rec.img.ans}">`:''}<span>${esc(tilePos(rec,rec.answer))}</span></div>
-        ${rec.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${rec.img.act?`<img class="tileimg" src="${rec.img.act}">`:''}<span>${esc(tilePos(rec,rec.actual))}${rec.actual===rec.answer||(rec.same||[]).indexOf(rec.actual)>=0?'（推奨どおり）':''}</span></div>`:''}
+      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${IM(rec).ans?`<img class="tileimg" src="${IM(rec).ans}">`:''}<span>${esc(tilePos(rec,rec.answer))}</span></div>
+        ${rec.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${IM(rec).act?`<img class="tileimg" src="${IM(rec).act}">`:''}<span>${esc(tilePos(rec,rec.actual))}${rec.actual===rec.answer||(rec.same||[]).indexOf(rec.actual)>=0?'（推奨どおり）':''}</span></div>`:''}
         ${judged&&!ok?`<div class="row" style="margin-top:6px"><span>あなた：</span><span>${esc(tilePos(rec,QUIZ.chosen))}</span></div>`:''}
         ${rec.manual?'<div class="small muted" style="margin-top:4px">※正解は取り込み時に手動で指定されたものです</div>':''}
       </div>${candListHTML(rec)}`;
@@ -613,7 +626,7 @@ async function saveQueued(id,quiet){
   const r=q.result; if(r.answer<0){ toast('正解の牌をタップして指定してください'); return; }
   const rec={id:uid(),createdAt:Date.now(),batch:BATCH?BATCH.id:'none',file:q.file.name,
     w:r.w,h:r.h,tiles:r.tiles,answer:r.answer,actual:r.actual,same:r.same,bars:r.bars,sig:r.sig,hash:r.hash,manual:!!r.manual,frameHidden:r.frameHidden,
-    img:r.img,status:'new',review:false,attempts:0,correctCount:0,wrongCount:0,lastAnsweredAt:null};
+    img:r.img,lite:r.lite,status:'new',review:false,attempts:0,correctCount:0,wrongCount:0,lastAnsweredAt:null};
   await dbPut(rec);
   QUEUE=QUEUE.filter(x=>x.id!==id);
   if(!quiet){ drawQueue(); toast('保存しました'); }
@@ -655,7 +668,7 @@ async function renderList(){
           ${r.status==='wrong'?'<span class="badge b-wrong">不正解</span>':r.status==='correct'?'<span class="badge b-correct">正解</span>':'<span class="badge b-new">未出題</span>'}
           ${r.review?'<span class="badge b-review">要復習</span>':''}${r.manual?'<span class="chip">手動</span>':''}
           <span class="grow"></span><span class="small muted">◯${r.correctCount||0} / ✕${r.wrongCount||0}</span></div>
-        ${r.img&&r.img.strip?`<img class="strip" src="${r.img.strip}" alt="">`:'<p class="small muted">（画像なし）</p>'}
+        ${IM(r).strip?`<img class="strip" src="${IM(r).strip}" alt="">`:'<p class="small muted">（画像なし）</p>'}
       </div>`).join('')}</div>`;
   }).join('');
   view.innerHTML=`<div class="filters">
@@ -678,13 +691,13 @@ async function openDetail(id){
         ${r.status==='wrong'?'<span class="badge b-wrong">不正解</span>':r.status==='correct'?'<span class="badge b-correct">正解</span>':'<span class="badge b-new">未出題</span>'}
         ${r.review?'<span class="badge b-review">要復習</span>':''}<span class="grow"></span>
         <span class="small muted">${fmtDT(r.createdAt)}</span></div>
-      ${r.img?shotHTML(r.img.a,r,zonesA):''}
-      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${r.img&&r.img.ans?`<img class="tileimg" src="${r.img.ans}">`:''}<span>${esc(tilePos(r,r.answer))}</span></div>
-        ${r.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${r.img&&r.img.act?`<img class="tileimg" src="${r.img.act}">`:''}<span>${esc(tilePos(r,r.actual))}</span></div>`:''}</div>
+      ${hasImg(r)?shotHTML(IM(r).a,r,zonesA):'<p class="small" style="color:var(--review)">画像データが見つかりません。削除して取り込み直してください。</p>'}
+      <div class="expl"><div class="row"><b>Mortalの推奨：</b>${IM(r).ans?`<img class="tileimg" src="${IM(r).ans}">`:''}<span>${esc(tilePos(r,r.answer))}</span></div>
+        ${r.actual>=0?`<div class="row" style="margin-top:6px"><span>実戦：</span>${IM(r).act?`<img class="tileimg" src="${IM(r).act}">`:''}<span>${esc(tilePos(r,r.actual))}</span></div>`:''}</div>
       ${candListHTML(r)}
       <div class="small muted" style="margin-top:8px">正解が違うときは、下の手牌で正しい牌をタップすると直せます。</div>
-      ${r.img?stripHTML(r,zonesA):''}
-      ${r.img?`<details><summary>問題として表示される画像</summary>${shotHTML(r.img.q,r,null)}</details>`:''}
+      ${hasImg(r)?stripHTML(r,zonesA):''}
+      ${hasImg(r)?`<details><summary>問題として表示される画像</summary>${shotHTML(IM(r).q,r,null)}</details>`:''}
       <div class="row" style="margin-top:12px">
         <button class="${r.review?'btn-warn':'btn-ghost'} grow" id="rev">${r.review?'★ 要復習を解除':'☆ 要復習にする'}</button>
         <button class="btn-ghost" id="reset">未出題に戻す</button></div>
@@ -710,7 +723,7 @@ async function renderSettings(){
       <div><span class="n" style="color:var(--bad)">${s.wrong}</span><span class="l">不正解</span></div>
       <div><span class="n" style="color:var(--review)">${s.review}</span><span class="l">要復習</span></div>
       <div><span class="n" style="color:var(--good)">${s.correct}</span><span class="l">正解</span></div></div>
-    <p class="small muted">問題と学習状況はこの端末のブラウザ内だけに保存されます。外部への送信はありません。</p>
+    <p class="small muted">問題と学習状況はこの端末のブラウザ内だけに保存されます（IndexedDB と localStorage の二重保存。片方が消えてももう片方から復元）。外部への送信はありません。</p>
     <div class="row"><button class="btn-primary grow" id="exp">バックアップ書き出し</button><button class="btn-ghost grow" id="imp">読み込み</button></div>
     <input type="file" id="impf" accept="application/json" style="display:none">
     <button class="btn-danger btn-block btn-sm" id="clr" style="margin-top:10px">すべて削除</button>
@@ -760,8 +773,10 @@ async function renderSettings(){
       await flush(); toast(n+'件読み込みました'); renderSettings();}catch(err){toast('失敗：'+err.message);}});
   $('#clr').addEventListener('click',async()=>{if(!confirm('すべての問題を削除します。よろしいですか？'))return; await dbClear();QUIZ=null;toast('削除しました');renderSettings();});
 }
+const inAppBrowser=()=>/Line\/|FBAN|FBAV|Instagram|Twitter|MicroMessenger/i.test(navigator.userAgent);
 async function boot(){
   await loadAll(); render(); askPersist();
+  if(inAppBrowser()) toast('LINEなどのアプリ内ブラウザでは保存したデータが消えることがあります。右上のメニューから Safari / Chrome で開いてください',9000);
   if(String(DIAG.idb).indexOf('使用不可')===0 && String(DIAG.ls).indexOf('OK')!==0)
     toast('この環境ではデータを保存できません。プライベートブラウズを解除するか、ホーム画面に追加してください',7000);
 }
